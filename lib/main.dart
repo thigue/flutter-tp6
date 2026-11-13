@@ -1,6 +1,8 @@
 //THIAGO GUERRA SOARES
 
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
@@ -28,6 +30,24 @@ class ReceitaPage extends StatefulWidget {
 class _ReceitaPageState extends State<ReceitaPage> {
   final TextEditingController controller = TextEditingController();
 
+  List<dynamic> receitas = [];
+
+  Future<void> buscarReceitas() async {
+    String pesquisa = controller.text.trim();
+
+    final url = Uri.parse(
+      'https://www.themealdb.com/api/json/v1/1/search.php?s=${Uri.encodeQueryComponent(pesquisa)}',
+    );
+
+    final resposta = await http.get(url);
+
+    final dados = jsonDecode(resposta.body);
+
+    setState(() {
+      receitas = dados['meals'] ?? [];
+    });
+  }
+
   @override
   void dispose() {
     controller.dispose();
@@ -52,19 +72,36 @@ class _ReceitaPageState extends State<ReceitaPage> {
                 border: OutlineInputBorder(),
               ),
             ),
+
             SizedBox(height: 10),
+
             ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Pesquisa: ${controller.text}'),
-                  ),
-                );
-              },
+              onPressed: buscarReceitas,
               child: Text('Buscar'),
             ),
+
             SizedBox(height: 20),
-            Text('As receitas aparecerão aqui.'),
+
+            Expanded(
+              child: ListView.builder(
+                itemCount: receitas.length,
+                itemBuilder: (context, index) {
+                  final receita = receitas[index];
+
+                  return Card(
+                    child: ListTile(
+                      leading: Image.network(
+                        receita['strMealThumb'],
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                      ),
+                      title: Text(receita['strMeal']),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
